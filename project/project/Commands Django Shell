@@ -1,0 +1,55 @@
+Команды Django Shell
+python manage.py shell #запустить шелл
+from news.models import * #импорт моделей
+Создание объектов
+user1 = User.objects.create_user(username =user1)
+user2 = User.objects.create_user(username = 'Ahad')
+user3 = User.objects.create_user(username = 'Miya')
+
+author1 = Author.objects.create(user=user1)
+author2 = Author.objects.create(user=user2)
+author3 = Author.objects.create(user=user3)
+
+post1 = Post.objects.create(author= author1, title ='title', text='text')
+post2 = Post.objects.create(author= author1, title ='title', text='text', post_type='NW')
+post3 = Post.objects.create(author= author2, title ='title', text='text', post_type='AR')
+post4 = Post.objects.create(author= author3, title ='title', text='text', post_type='AR')
+
+com1 = Comment.objects.create(text='text', post = post1, user = author1.user)
+com2 = Comment.objects.create(text='Интересная статья, очень полезная, спасибо!', post = post1, user = author2.user)
+com3 = Comment.objects.create(text='Благодарю', post = post3, user = author3.user)
+com4 = Comment.objects.create(text='Вау, как интересно', post = post4, user = author3.user)
+category1 = Category.objects.create(name='спорт')
+category2 = Category.objects.create(name='политика')
+category3 = Category.objects.create(name='образование')
+category = Category.objects.create(name='юмор')
+
+Присвоить постам категории
+new_post = Post.objects.create(author=author1, title="new title", text="new text")
+new_post.category.add(category3, category)
+
+post1.category.add(category1, category2)
+post2.category.add(category2, category3)
+post3.category.add(category, category1)
+post4.category.add(category1, category)
+
+Вывести username и рейтинг лучшего пользователя:
+Author.objects.order_by("-rating").values("user__username", "rating").first()
+
+Вывести дату добавления, username автора, рейтинг, заголовок и превью лучшей статьи, основываясь на лайках/дислайках к этой статье.
+Вывести дату добавления, username автора, рейтинг, заголовок и превью лучшей статьи, основываясь на лайках/дислайках к этой статье.
+best_post = Post.objects.order_by("-rating").first()
+best_post.author.user.username
+best_post.date_in
+best_post.rating
+best_post.title
+best_post.preview()
+
+Вывести все комментарии (дата, пользователь, рейтинг, текст) к этой статье.
+Comment.objects.filter(post=best_post).values("date_in", "user", "rating", "text")
+
+Если требуется работать в shell с ранее созданными объектами, то нужно получить их, например, по идентификатору и присвоить в переменные.
+user1 = User.objects.get(pk=1)
+author1 = Author.objects.get(pk=1)
+post1 = Post.objects.get(pk=1)
+com1 = Comment.objects.get(pk=1)
