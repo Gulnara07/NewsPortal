@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.core.validators import MinValueValidator
-
+from django.urls import reverse
 
 # Create your models here.
 class Author(models.Model):
@@ -18,6 +18,8 @@ class Author(models.Model):
 
         self.rating = posts_rating * 3 + comments_rating + posts_comments_rating
         self.save()
+    def __str__(self):
+        return self.user.username
 
 
 class Category(models.Model):
@@ -36,14 +38,16 @@ class Post(models.Model):
     ]
 
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    post_type = models.CharField(max_length=2, choices=POST_TYPES, default=news)
-    date_in = models.DateTimeField(auto_now_add=True)
     category = models.ManyToManyField(Category, through='PostCategory')
+    post_type = models.CharField(max_length=2, choices=POST_TYPES, default=articles)
+    date_in = models.DateTimeField(auto_now_add=True)
+
     title = models.CharField(max_length=255)
     text = models.TextField()
     rating = models.IntegerField(default=0)
 
-
+    def get_absolute_url(self):
+        return reverse('post_detail', args=[str(self.id)])
 
     def like(self):
         self.rating += 1

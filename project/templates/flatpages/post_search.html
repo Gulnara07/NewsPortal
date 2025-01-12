@@ -1,0 +1,42 @@
+{% extends 'flatpages/default.html' %}
+{% load custom_filters %}
+
+{% block content %}
+   <h1>Поиск новостей</h1>
+   <hr>
+
+   {# Добавляем форму, которая объединяет набор полей, которые будут отправляться в запросе #}
+   <form action="" method="get">
+       {% csrf_token %}
+       {# Переменная, которую мы передали через контекст, может сгенерировать нам форму с полями #}
+       {{ filterset.form.as_p }}
+       {# Добавим кнопку отправки данных формы #}
+       <input type="submit" value="Найти" />
+
+
+   </form>
+
+
+   <hr>
+   {% if post_search %}
+       <table>
+           <tr>
+               <td>Заголовок</td>
+               <td>Текст</td>
+               <td>Дата публикации</td>
+           </tr>
+           {% for post in post_search %}
+           <tr>
+               <td>{{ post.title }}</td>
+               <td>{{ post.text|truncatewords:20|censor }}</td>
+               <td>{{ post.date_in|date:'d M Y' }}</td>
+           </tr>
+           {% endfor %}
+       </table>
+   {% else %}
+       <h2>Новостей нет</h2>
+
+
+   {% endif %}
+
+{% endblock content %}
