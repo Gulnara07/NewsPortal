@@ -2,7 +2,8 @@ from django.shortcuts import render
 from datetime import datetime
 
 from django.urls import reverse, reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .models import Post
 from .filters import PostFilter
 from .forms import PostForm
@@ -58,8 +59,10 @@ class Post_Search(ListView):
         context['filterset'] = self.filterset
         return context
 
+
 # Добавляем новое представление для создания постов.
-class PostCreate(CreateView):
+class PostCreate(PermissionRequiredMixin, CreateView):
+    permission_required = ('news.add_post', )
     model = Post
     form_class = PostForm
     template_name = 'flatpages/post_edit.html'
@@ -74,10 +77,12 @@ class PostCreate(CreateView):
 
 
 # Добавляем представление для изменения поста.
-class PostUpdate(UpdateView):
+class PostUpdate(PermissionRequiredMixin, UpdateView):
+    permission_required = ('news.change_post',)
     form_class = PostForm
     model = Post
     template_name = 'flatpages/post_edit.html'
+
 
 # Представление удаляющее товар.
 class PostDelete(DeleteView):
