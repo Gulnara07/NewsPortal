@@ -8,6 +8,6 @@
 <body>
 {% csrf.token %}
     <h2> Здравствуй, {{ appointment.subscriber_name }}. Новая статья в твоём любимом разделе! </h2>
-    <p> Вы записаны на {{ appointment.date|date:"d-M-Y" }} по вопросу: {{ appointment.message|truncatechars:50 }} </p>
+    <p> {{ appointment.message|truncatechars:50 }} </p>
 </body>
 </html>
