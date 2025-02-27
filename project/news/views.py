@@ -69,12 +69,15 @@ class PostCreate(PermissionRequiredMixin, CreateView):
     template_name = 'flatpages/post_edit.html'
     #success_url = reverse_lazy('news_create')
 
+
     def form_valid(self, form):
         post = form.save(commit=False)
         if self.request.path == reverse('news_create'):
             post.post_type = 'NW'
         post.save()
+
         return super().form_valid(form)
+
 
 
 # Добавляем представление для изменения поста.
