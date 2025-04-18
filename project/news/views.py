@@ -1,14 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
-from datetime import datetime
-
 from django.urls import reverse, reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from .models import Post, Category
 from .filters import PostFilter
 from .forms import PostForm
-
+from django.views.decorators.cache import cache_page # импортируем декоратор для кэширования отдельного представления
+from django.core.cache import cache # импортируем наш кэш
 
 class News(ListView):
     model = Post
@@ -42,6 +41,20 @@ class NewsDetail(DetailView):
     template_name = 'flatpages/post.html'
     # Название объекта, в котором будет выбранный пользователем пост
     context_object_name = 'post'
+    queryset = Post.objects.all()
+
+    def get_object(self, *args, **kwargs):  # переопределяем метод получения объекта, как ни странно
+
+        obj = cache.get(f'product-{self.kwargs["pk"]}',
+                        None)  # кэш очень похож на словарь, и метод get действует так же. Он забирает значение по ключу, если его нет, то забирает None.
+
+        # если объекта нет в кэше, то получаем его и записываем в кэш
+
+        if not obj:
+            obj = super().get_object(queryset=self.queryset)
+            cache.set(f'product-{self.kwargs["pk"]}', obj)
+
+        return obj
 
 
 class Post_Search(ListView):
@@ -114,6 +127,7 @@ class CategoryListView(ListView):
 
 
 @login_required
+@cache_page(60 * 15)
 def subcribe(request, pk):
     user = request.user
     category = Category.objects.get(id = pk)

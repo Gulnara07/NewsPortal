@@ -4,6 +4,8 @@ from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.core.validators import MinValueValidator
 from django.urls import reverse
+from django.core.cache import cache # импортируем наш кэш
+
 
 # Create your models here.
 class Author(models.Model):
@@ -43,13 +45,16 @@ class Post(models.Model):
     category = models.ManyToManyField(Category, through='PostCategory')
     post_type = models.CharField(max_length=2, choices=POST_TYPES, default=articles)
     date_in = models.DateTimeField(auto_now_add=True)
-
     title = models.CharField(max_length=255)
     text = models.TextField()
     rating = models.IntegerField(default=0)
 
     def get_absolute_url(self):
         return reverse('post_detail', args=[str(self.id)])
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)  # сначала вызываем метод родителя, чтобы объект сохранился
+        cache.delete(f'post-{self.pk}')  # затем удаляем его из кэша, чтобы сбросить его
 
     def like(self):
         self.rating += 1
