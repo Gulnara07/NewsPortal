@@ -1,16 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% extends 'flatpages/default.html' %}
+{% load cache %}
+
+{% block head %}
+    {% cache 30 notification_head %}
     <meta charset="UTF-8">
     <title>Уведомление</title>
-</head>
-<body>
-    <h2>Здравствуйте! Новые статьи за последнюю неделю </h2>
+    {% endcache %}
+{% endblock %}
+
+{% block content %}
+    <h2>Здравствуйте! Новые статьи за последнюю неделю</h2>
     <ul>
         {% for post in posts %}
-        <l1><p><a href="{{ link }} {{ post.get_absolute.url }}">{{ post.title }}</a></p></l1>
+            <li>
+                <p>
+                    <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
+                </p>
+            </li>
         {% endfor %}
     </ul>
-
-</body>
-</html>
+{% endblock %}

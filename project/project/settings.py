@@ -3,10 +3,9 @@ from pathlib import Path
 import os
 import django.core.mail.backends.console
 from dotenv import load_dotenv, find_dotenv
-
 import logging
 
-logger = logging.getlogger('django')
+logger = logging.getLogger('django')
 
 load_dotenv(find_dotenv())
 
@@ -23,6 +22,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'modeltranslation', # обязательно вписать его перед админом
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,20 +42,22 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.yandex',
-    'django_apscheduler'
-
+    'django_apscheduler',
+    'rest_framework',
 ]
 SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
+    'news.middlewares.TimezoneMiddleware', # add that middleware!
 # Add the account middleware: для моих версий стрка кода ниже не нужна
     #"allauth.account.middleware.AccountMiddleware"
 ]
@@ -77,6 +79,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.tz',
             ],
         },
     },
@@ -126,11 +129,14 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGES = [
+    ('en-us', 'English'),
+    ('ru', 'Русский')
+]
+
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -183,7 +189,7 @@ SERVER_EMAIL = 'sfprojecttest@yandex.ru'  # это будет у нас вмес
 
 # формат даты, которую будет воспринимать наш задачник (вспоминаем модуль по фильтрам)
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
-# если задача не выполняется за 25 секунд, то она автоматически снимается, можете поставить время побольше,
+# если задача не выполняется за 25 секунд, то она автоматически снимается, можно поставить время побольше,
 # но как правило, это сильно бьёт по производительности сервера
 APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
 
@@ -203,6 +209,13 @@ CACHES = {
         'LOCATION': os.path.join(BASE_DIR, 'cache_files') # Указываем, куда будем сохранять кэшируемые файлы! Не забываем создать папку cache_files внутри папки с manage.py!
     }
 }
+
+REST_FRAMEWORK = {
+   'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+   'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+   'PAGE_SIZE': 10
+}
+
 #логирование
 LOGGING = {
     'version': 1,
@@ -210,14 +223,14 @@ LOGGING = {
     'style': '{',
     'formatters': {
         'simple': {
-            'format': '%(asktime)s %(levelname)s %(message)s',
+            'format': '%(asctime)s %(levelname)s %(message)s',
             'datefmt': "%d.%m.%Y %H-%M-%S"
         },
         'simple_warning': {
-            'format': '%(asktime)s %(levelname)s %(message)s %(pathname)s'
+            'format': '%(asctime)s %(levelname)s %(message)s %(pathname)s'
         },
         'simple_error': {
-            'format': '%(asktime)s %(levelname)s %(message)s %(pathname)s %(exc_info)s'
+            'format': '%(asctime)s %(levelname)s %(message)s %(exc_info)s'
         },
         'general': {
             'format': '%(asctime)s %(levelname)s %(module)s %(message)s',
@@ -284,7 +297,7 @@ LOGGING = {
         },
         'mail_admins': {
             'level': 'ERROR',
-            'class': 'django.utls.log.AdminEmailHandler',
+            'class': 'django.utils.log.AdminEmailHandler',
             'formatter': 'email'
         }
     },
@@ -301,11 +314,11 @@ LOGGING = {
             'handlers': ['errors', 'mail_admins'],
             'propagate': True
         },
-        'django.db_backends': {
+        'django.template': {
             'handlers': ['errors'],
             'propagate': True
         },
-        'django.template': {
+        'django.db_backends': {
             'handlers': ['errors'],
             'propagate': True
         },

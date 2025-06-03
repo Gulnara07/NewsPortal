@@ -1,13 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-{% csrf.token %}
-    <h2> Здравствуй, {{ appointment.subscriber_name }}. Новая статья в твоём любимом разделе! </h2>
-    <p> {{ appointment.message|truncatechars:50 }} </p>
-</body>
-</html>
+{% extends 'flatpages/default.html' %}
+{% load cache %}
+
+{% block head %}
+    {% cache 30 page_head %}
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    {% endcache %}
+{% endblock %}
+
+{% block content %}
+    <h2>Здравствуй, {{ appointment.subscriber_name }}. Новая статья в твоём любимом разделе!</h2>
+    <p>{{ appointment.message|truncatechars:50 }}</p>
+{% endblock %}

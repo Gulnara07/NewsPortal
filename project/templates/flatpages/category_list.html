@@ -10,7 +10,7 @@ News
 
    <h1>Список новостей:</h1>
 <h3>Всего публикаций: {{ posts|length }}</h3>
-<h3>{{ time_now|date:' d M Y' }}</h3>
+<h3>{{ time_now|date:'d M Y' }}</h3>
 
     {% if is_not_subscriber %}
        <p class="text-center"><a href="{% url 'subscribe' category.id %}" class="btn btn-secondary btn-sm">Подписаться</a></p>
@@ -47,8 +47,6 @@ News
                {% endfor %}
                </td>
 
-
-               <td>{{ post.title }}</td>
                <td>{{ post.date_in }}</td>
                <td>{{ post.text|truncatechars:20 }}</td>
                <td>{{ post.post_type }}</td>

@@ -1,13 +1,19 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.views import View
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from .models import Post, Category
+from rest_framework import viewsets, permissions
 from .filters import PostFilter
 from .forms import PostForm
 from django.views.decorators.cache import cache_page # импортируем декоратор для кэширования отдельного представления
 from django.core.cache import cache # импортируем наш кэш
+from django.utils.translation import gettext as _ # импортируем функцию для перевода
+from .serializers import *
+from .models import *
+import pytz #  импортируем стандартный модуль для работы с часовыми поясами
 
 class News(ListView):
     model = Post
@@ -16,22 +22,18 @@ class News(ListView):
     context_object_name = 'posts'
     paginate_by = 10
 
-    # Переопределяем функцию получения списка товаров
+    # Переопределяем функцию получения списка постов
+
     def get_queryset(self):
         # Получаем обычный запрос
         queryset = super().get_queryset()
-        # Используем наш класс фильтрации.
-        # self.request.GET содержит объект QueryDict, который мы рассматривали
-        # в этом юните ранее.
-        # Сохраняем нашу фильтрацию в объекте класса,
-        # чтобы потом добавить в контекст и использовать в шаблоне.
         self.filterset = PostFilter(self.request.GET, queryset)
-        # Возвращаем из функции отфильтрованный список товаров
+        # Возвращаем из функции отфильтрованный список постов
         return self.filterset.qs
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Добавляем в контекст объект фильтрации.
         context['filterset'] = self.filterset
         return context
 
@@ -43,16 +45,17 @@ class NewsDetail(DetailView):
     context_object_name = 'post'
     queryset = Post.objects.all()
 
+
     def get_object(self, *args, **kwargs):  # переопределяем метод получения объекта, как ни странно
 
-        obj = cache.get(f'product-{self.kwargs["pk"]}',
+        obj = cache.get(f'post-{self.kwargs["pk"]}',
                         None)  # кэш очень похож на словарь, и метод get действует так же. Он забирает значение по ключу, если его нет, то забирает None.
 
         # если объекта нет в кэше, то получаем его и записываем в кэш
 
         if not obj:
             obj = super().get_object(queryset=self.queryset)
-            cache.set(f'product-{self.kwargs["pk"]}', obj)
+            cache.set(f'post-{self.kwargs["pk"]}', obj)
 
         return obj
 
@@ -63,10 +66,12 @@ class Post_Search(ListView):
     template_name = 'flatpages/post_search.html'
     context_object_name = "post_search"
 
+
     def get_queryset(self):
         queryset = super().get_queryset()
         self.filterset = PostFilter(self.request.GET, queryset)
         return self.filterset.qs
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -85,13 +90,13 @@ class PostCreate(PermissionRequiredMixin, CreateView):
 
     def form_valid(self, form):
         post = form.save(commit=False)
+        #post.author = Author.objects.get_or_create(user=self.request.user)[0]
+        post.author = Author.objects.get(user=self.request.user)  # Убедимся, что автор существует
         if self.request.path == reverse('news_create'):
             post.post_type = 'NW'
         post.save()
 
         return super().form_valid(form)
-
-
 
 # Добавляем представление для изменения поста.
 class PostUpdate(PermissionRequiredMixin, UpdateView):
@@ -113,10 +118,12 @@ class CategoryListView(ListView):
     template_name = 'flatpages/category_list.html'
     context_object_name = 'category_news_list'
 
+
     def get_queryset(self):
         self.category = get_object_or_404(Category, id=self.kwargs['pk'])
         queryset = Post.objects.filter(category=self.category).order_by('date_in')
         return queryset
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -125,9 +132,7 @@ class CategoryListView(ListView):
         return context
 
 
-
 @login_required
-@cache_page(60 * 15)
 def subcribe(request, pk):
     user = request.user
     category = Category.objects.get(id = pk)
@@ -136,3 +141,33 @@ def subcribe(request, pk):
     message = 'Вы успешно подписались на рассылку новостей категории'
     return render(request, 'flatpages/subscribe.html', {'category': category, 'message': message})
 
+class CategoryViewset(viewsets.ModelViewSet):
+   queryset = Category.objects.all()
+   serializer_class = CategorySerializer
+
+class PostViewest(viewsets.ModelViewSet):
+   queryset = Post.objects.all()
+   serializer_class = PostSerializer
+   permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class Index(View):
+    def get(self, request):
+        curent_time = pytz.timezone.now()
+
+        # .  Translators: This message appears on the home page only
+        models = Post.objects.all()
+
+        context = {
+            'models': models,
+            'current_time': pytz.timezone.now(),
+            'timezones': pytz.common_timezones,  # добавляем в контекст все доступные часовые пояса
+            'redirect_to': request.path,
+        }
+
+        return HttpResponse(render(request, 'index.html', context))
+
+    #  по пост-запросу будем добавлять в сессию часовой пояс, который и будет обрабатываться написанным нами ранее middleware
+    def post(self, request):
+        request.session['django_timezone'] = request.POST['timezone']
+        return redirect(request.META['HTTP.REFERER'])

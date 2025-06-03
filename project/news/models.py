@@ -5,11 +5,12 @@ from django.db.models.functions import Coalesce
 from django.core.validators import MinValueValidator
 from django.urls import reverse
 from django.core.cache import cache # импортируем наш кэш
-
+from django.utils.translation import gettext as _
+from django.utils.translation import pgettext_lazy # импортируем «ленивый» геттекст с подсказкой
 
 # Create your models here.
 class Author(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, help_text=_('Author name'))
     rating = models.IntegerField(default=0)
 
     def update_rating(self):
@@ -21,12 +22,13 @@ class Author(models.Model):
         self.rating = posts_rating * 3 + comments_rating + posts_comments_rating
         self.save()
     def __str__(self):
-        return self.user.username
+        return self.user.username if self.user else "Без автора"
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=50, unique=True, help_text=_('category name')) # добавим переводящийся текст подсказку к полю
     subscribers = models.ManyToManyField(User, related_name='categories')
+
 
     def __str__(self):
         return self.name.title()
@@ -48,7 +50,6 @@ class Post(models.Model):
     title = models.CharField(max_length=255)
     text = models.TextField()
     rating = models.IntegerField(default=0)
-
     def get_absolute_url(self):
         return reverse('post_detail', args=[str(self.id)])
 
@@ -74,9 +75,8 @@ class Post(models.Model):
 
 
 class PostCategory(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, help_text=_('post category name'))
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-
 
 
 class Comment(models.Model):
